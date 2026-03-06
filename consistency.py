@@ -396,8 +396,8 @@ class GenAIClient:
 QUERY_TEXT = "artificial intelligence"
 RESPONSE_LIMIT = 20
 DATE_FROM = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
-OFFSETS = list(range(2))  # 0 … 30 days before today
-NUM_CALLS = 2  # calls per offset
+OFFSETS = list(range(10))  # 0 … 30 days before today
+NUM_CALLS = 30  # calls per offset
 
 _sweep_logger = logging.getLogger("sweep")
 
