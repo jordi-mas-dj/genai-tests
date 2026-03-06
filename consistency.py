@@ -14,8 +14,28 @@ import aiohttp
 from datetime import datetime, timedelta
 import asyncio
 import threading
-import settings
 from libs.logger import setup_logger
+
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# GenAI configuration
+GEN_AI_RETRIEVAL_ENDPOINT = os.getenv(
+    "GEN_AI_RETRIEVAL_ENDPOINT:", "https://api.dowjones.com"
+)
+GEN_AI_RETRIEVAL_PATH = os.getenv(
+    "GEN_AI_RETRIEVAL_PATH", "/content/gen-ai/internal/retrieve"
+)
+
+GEN_AI_RETRIEVAL_CLIENT_ID = os.getenv("GEN_AI_RETRIEVAL_CLIENT_ID")
+GEN_AI_RETRIEVAL_SERVICE_ACCOUNT = os.getenv("GEN_AI_RETRIEVAL_SERVICE_ACCOUNT")
+GEN_AI_RETRIEVAL_PASSWORD = os.getenv("GEN_AI_RETRIEVAL_PASSWORD")
+GEN_AI_RETRIEVAL_TOKEN_URL = os.getenv(
+    "GEN_AI_RETRIEVAL_TOKEN_URL", "https://accounts.dowjones.com/oauth2/v1/token"
+)
 
 
 class GenAIClient:
@@ -28,13 +48,11 @@ class GenAIClient:
         if hasattr(self, "_initialized"):
             return
 
-        self.token_url = settings.GEN_AI_RETRIEVAL_TOKEN_URL
-        self.client_id = settings.GEN_AI_RETRIEVAL_CLIENT_ID
-        self.service_account = settings.GEN_AI_RETRIEVAL_SERVICE_ACCOUNT
-        self.password = settings.GEN_AI_RETRIEVAL_PASSWORD
-        self.api_endpoint = (
-            f"{settings.GEN_AI_RETRIEVAL_ENDPOINT}{settings.GEN_AI_RETRIEVAL_PATH}"
-        )
+        self.token_url = GEN_AI_RETRIEVAL_TOKEN_URL
+        self.client_id = GEN_AI_RETRIEVAL_CLIENT_ID
+        self.service_account = GEN_AI_RETRIEVAL_SERVICE_ACCOUNT
+        self.password = GEN_AI_RETRIEVAL_PASSWORD
+        self.api_endpoint = f"{GEN_AI_RETRIEVAL_ENDPOINT}{GEN_AI_RETRIEVAL_PATH}"
         self.logger = setup_logger(__name__)
 
         self._cached_jwt_token = None
