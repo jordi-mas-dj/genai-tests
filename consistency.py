@@ -62,9 +62,7 @@ class GenAIClient:
         self.client_id = GEN_AI_RETRIEVAL_CLIENT_ID
         self.service_account = GEN_AI_RETRIEVAL_SERVICE_ACCOUNT
         self.password = GEN_AI_RETRIEVAL_PASSWORD
-        self.api_endpoint = (
-            f"{GEN_AI_RETRIEVAL_ENDPOINT}{GEN_AI_RETRIEVAL_PATH}"
-        )
+        self.api_endpoint = f"{GEN_AI_RETRIEVAL_ENDPOINT}{GEN_AI_RETRIEVAL_PATH}"
         self.logger = logging.getLogger(__name__)
 
         self._cached_jwt_token = None
@@ -288,7 +286,11 @@ class GenAIClient:
         # Validate dates
         date_from, date_to = self._validate_dates(init_date, end_date, thread_id)
 
-        search_mode = "Semantic" if use_semantic_search else ("Lexical" if use_lexical else "Default")
+        search_mode = (
+            "Semantic"
+            if use_semantic_search
+            else ("Lexical" if use_lexical else "Default")
+        )
 
         # Log query parameters
         self.logger.info(
@@ -427,9 +429,11 @@ async def run_searches_for_offset(
         for article in results:
             article_id = article["id"]
             headline = article["attributes"].get("headline", "N/A")
+            if isinstance(headline, dict):
+                headline = headline.get("main", {}).get("text", "N/A")
             _sweep_logger.info(
                 f"offset={offset}d call={i + 1}/{NUM_CALLS} "
-                f"article_id={article_id} headline=\"{headline}\""
+                f'article_id={article_id} headline="{headline}"'
             )
             article_appearances[article_id].append(i + 1)
 
