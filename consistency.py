@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import aiohttp
 import time
+import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -14,13 +15,22 @@ import aiohttp
 from datetime import datetime, timedelta
 import asyncio
 import threading
-from libs.logger import setup_logger
 
 import os
 from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# ── Logging setup ─────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+    handlers=[
+        logging.FileHandler("consistency.log"),
+        logging.StreamHandler(),
+    ],
+)
 
 # GenAI configuration
 GEN_AI_RETRIEVAL_ENDPOINT = os.getenv(
@@ -52,8 +62,10 @@ class GenAIClient:
         self.client_id = GEN_AI_RETRIEVAL_CLIENT_ID
         self.service_account = GEN_AI_RETRIEVAL_SERVICE_ACCOUNT
         self.password = GEN_AI_RETRIEVAL_PASSWORD
-        self.api_endpoint = f"{GEN_AI_RETRIEVAL_ENDPOINT}{GEN_AI_RETRIEVAL_PATH}"
-        self.logger = setup_logger(__name__)
+        self.api_endpoint = (
+            f"{GEN_AI_RETRIEVAL_ENDPOINT}{GEN_AI_RETRIEVAL_PATH}"
+        )
+        self.logger = logging.getLogger(__name__)
 
         self._cached_jwt_token = None
         self._token_expiry = None
@@ -276,6 +288,15 @@ class GenAIClient:
         # Validate dates
         date_from, date_to = self._validate_dates(init_date, end_date, thread_id)
 
+        search_mode = "Semantic" if use_semantic_search else ("Lexical" if use_lexical else "Default")
+
+        # Log query parameters
+        self.logger.info(
+            f"Thread {thread_id}: API query params — "
+            f"query='{query_text}', date_from={date_from}, date_to={date_to}, "
+            f"response_limit={response_limit}, search_mode={search_mode}"
+        )
+
         # Build request
         headers = {
             "Authorization": f"Bearer {jwt_token}",
@@ -296,7 +317,6 @@ class GenAIClient:
         retry_delay = 20
         call_audit_info = {}
 
-        search_mode = "Semantic" if use_semantic_search else "Default"
         for attempt in range(max_retries):
             self.logger.info(
                 f"Thread {thread_id}: Attempt {attempt + 1}/{max_retries} "
@@ -377,6 +397,8 @@ DATE_FROM = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
 OFFSETS = list(range(5))  # 0 … 30 days before today
 NUM_CALLS = 10  # calls per offset
 
+_sweep_logger = logging.getLogger("sweep")
+
 
 # ── Search runner for one offset ─────────────────────────────────────────────
 async def run_searches_for_offset(
@@ -403,7 +425,13 @@ async def run_searches_for_offset(
         )
 
         for article in results:
-            article_appearances[article["id"]].append(i + 1)
+            article_id = article["id"]
+            headline = article["attributes"].get("headline", "N/A")
+            _sweep_logger.info(
+                f"offset={offset}d call={i + 1}/{NUM_CALLS} "
+                f"article_id={article_id} headline=\"{headline}\""
+            )
+            article_appearances[article_id].append(i + 1)
 
         duration = audit.get("call_duration_s", "?")
         print(
